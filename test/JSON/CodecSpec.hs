@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -40,8 +41,15 @@ spec = do
   -- roundtripSpec @Text
   -- equivalentToAesonSpec @Text
 
-  describe "Thing" $
+  describe "Thing" $ do
+    parseSuccessSpec
+      "{\"bool\": true, \"text\": \"hello world\"}"
+      (Thing True "hello world")
+    renderSpec
+      (Thing False "foo bar")
+      "{\"bool\":false,\"text\":\"foo bar\"}"
     roundtripSpec @Thing
+    equivalentToAesonDecodedSpec @Thing
 
 data Thing = Thing {thingBool :: !Bool, thingText :: !Text}
   deriving (Show, Eq, Generic)
@@ -59,13 +67,34 @@ instance HasCodec Thing where
         <$> field "bool" .= thingBool
         <*> field "text" .= thingText
 
+instance Aeson.FromJSON Thing where
+  parseJSON = Aeson.withObject "Thing" $ \o ->
+    Thing
+      <$> o Aeson..: "bool"
+      <*> o Aeson..: "text"
+
+instance Aeson.ToJSON Thing where
+  toJSON Thing {..} =
+    Aeson.object
+      [ "bool" Aeson..= thingBool,
+        "text" Aeson..= thingText
+      ]
+
 equivalentToAesonSpec :: forall value. (Show value, GenValid value, Aeson.ToJSON value, HasCodec value) => Spec
 equivalentToAesonSpec = do
-  it "produces the same output as aeson does" $
+  it "produces the exact same output as aeson does" $
     forAllValid $ \(value :: value) ->
       let rendered = render value
           renderedViaAeson = Aeson.encode value
        in rendered `shouldBe` renderedViaAeson
+
+equivalentToAesonDecodedSpec :: forall value. (Show value, GenValid value, Aeson.FromJSON value, Aeson.ToJSON value, HasCodec value) => Spec
+equivalentToAesonDecodedSpec = do
+  it "produces the same json value as aeson does" $
+    forAllValid $ \(value :: value) ->
+      let rendered = render value
+          renderedViaAeson = Aeson.encode value
+       in Aeson.eitherDecode rendered `shouldBe` Aeson.eitherDecode @Aeson.Value renderedViaAeson
 
 roundtripSpec :: forall value. (Show value, Eq value, GenValid value, HasCodec value) => Spec
 roundtripSpec = it "roundtrips" $
@@ -90,3 +119,8 @@ parseFail input = case JSON.parseEither @output input of
 
 parseFailSpec :: forall output. (Show output, HasCodec output) => LB.ByteString -> Spec
 parseFailSpec input = it ("cannot parse " <> show input) $ parseFail @output input
+
+renderSpec :: (Show value, HasCodec value) => value -> LB.ByteString -> Spec
+renderSpec value expected =
+  it ("renders " <> show value <> " as " <> show expected) $
+    render value `shouldBe` expected

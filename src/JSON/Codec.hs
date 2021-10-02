@@ -11,6 +11,7 @@ import Data.Attoparsec.ByteString.Lazy
 import qualified Data.ByteString.Builder as BB
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Char as Char
+import Data.List (intersperse)
 import Data.String
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -99,7 +100,7 @@ codecParser = go
       BimapCodec f _ c -> f <$> go c
 
 objectCodecParser :: ObjectCodec void output -> Parser output
-objectCodecParser = go
+objectCodecParser oc = char '{' *> go oc <* char '}'
   where
     go :: ObjectCodec void output -> Parser output
     go = \case
@@ -159,6 +160,7 @@ stringParser = do
     goUnicode = do
       let hexChar = do
             w <- anyWord8
+            -- TODO also upper case letters.
             Char.digitToInt <$> case w of
               48 -> pure '0'
               49 -> pure '1'
@@ -181,7 +183,7 @@ stringParser = do
       h2 <- hexChar
       h3 <- hexChar
       h4 <- hexChar
-      (LTB.singleton (Char.chr (4096 * h1 + 256 * h2 + 16 * h3 + h4)) <>) <$> (anyWord8 >>= go)
+      (LTB.singleton (Char.chr (16 ^ (3 :: Int) * h1 + 16 ^ (2 :: Int) * h2 + 16 * h3 + h4)) <>) <$> (anyWord8 >>= go)
 
 class HasCodec domainType where
   codec :: Codec domainType domainType
@@ -220,14 +222,21 @@ codecBuilder = flip go
       BimapCodec _ g oc -> go (g input) oc
 
 objectCodecBuilder :: ObjectCodec input void -> input -> BB.Builder
-objectCodecBuilder = flip go
+objectCodecBuilder oc i = BB.char7 '{' <> renderKeyVals (go i oc) <> BB.char7 '}'
   where
-    go :: input -> ObjectCodec input void -> BB.Builder
+    -- TODO use a difference list?
+    go :: input -> ObjectCodec input void -> [(Text, BB.Builder)]
     go input = \case
-      KeyCodec _ _ -> undefined -- TODO
+      KeyCodec k c -> [(k, codecBuilder c input)]
       ApObjectCodec oc1 oc2 -> go input oc1 <> go input oc2
       PureObjectCodec _ -> mempty
-      BimapObjectCodec _ g oc -> go (g input) oc
+      BimapObjectCodec _ g c -> go (g input) c
+
+renderKeyVals :: [(Text, BB.Builder)] -> BB.Builder
+renderKeyVals = mconcat . intersperse (BB.char7 ',') . map (uncurry go)
+  where
+    go :: Text -> BB.Builder -> BB.Builder
+    go key value = stringBuilder key <> BB.char7 ':' <> value
 
 nullBuilder :: BB.Builder
 nullBuilder = "null"
