@@ -39,6 +39,7 @@ test-suite json-codec-test
     , bytestring
     , genvalidity
     , genvalidity-sydtest
+    , genvalidity-text
     , json-codec
     , sydtest
     , text

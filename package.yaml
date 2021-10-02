@@ -26,6 +26,7 @@ tests:
     - bytestring
     - genvalidity
     - genvalidity-sydtest
+    - genvalidity-text
     - json-codec
     - sydtest
     - text

@@ -12,6 +12,7 @@ extra-deps:
     subdirs:
       - genvalidity
       - genvalidity-sydtest
+      - genvalidity-text
       - validity
   - github: NorfairKing/safe-coloured-text
     commit: 7f157485e55528648a95edf3508a122b2e55779e
