@@ -56,8 +56,8 @@ instance HasCodec Thing where
   codec =
     object $
       Thing
-        <$> "bool" .= thingBool
-        <*> "text" .= thingText
+        <$> field "bool" .= thingBool
+        <*> field "text" .= thingText
 
 equivalentToAesonSpec :: forall value. (Show value, GenValid value, Aeson.ToJSON value, HasCodec value) => Spec
 equivalentToAesonSpec = do

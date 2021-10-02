@@ -66,10 +66,13 @@ instance Applicative (ObjectCodec input) where
   (<*>) = apObjectCodec
 
 instance HasCodec output => IsString (ObjectCodec output output) where
-  fromString s = KeyCodec (fromString s) codec
+  fromString = field . fromString
 
 (.=) :: ObjectCodec oldInput output -> (newInput -> oldInput) -> ObjectCodec newInput output
 (.=) = flip comapObjectCodec
+
+field :: HasCodec output => Text -> ObjectCodec output output
+field k = KeyCodec k codec
 
 pureObjectCodec :: output -> ObjectCodec input output
 pureObjectCodec = PureObjectCodec
