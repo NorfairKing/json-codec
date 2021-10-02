@@ -1,0 +1,25 @@
+resolver: lts-16.12
+packages:
+- .
+extra-deps:
+  - github: NorfairKing/sydtest
+    commit: 5c4a07a1e4ef5f1c15554063e011118fc75118a7
+    subdirs:
+      - sydtest
+      - sydtest-discover
+  - github: NorfairKing/validity
+    commit: 1e9a0d41d2f0a248298ca0679022f698dc518e3c
+    subdirs:
+      - genvalidity
+      - genvalidity-sydtest
+      - validity
+  - github: NorfairKing/safe-coloured-text
+    commit: 7f157485e55528648a95edf3508a122b2e55779e
+    subdirs:
+      - safe-coloured-text
+      - safe-coloured-text-terminfo
+  - github: NorfairKing/yamlparse-applicative
+    commit: 224a03aa8880d426b7641db16a05e0c7b311684f
+    subdirs:
+      - yamlparse-applicative
+  - envparse-0.4.1@sha256:989902e6368532548f61de1fa245ad2b39176cddd8743b20071af519a709ce30,2842
